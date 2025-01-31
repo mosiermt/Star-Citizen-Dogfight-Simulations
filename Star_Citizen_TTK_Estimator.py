@@ -2,13 +2,19 @@
 import json
 from statistics import mean
 from pandas import DataFrame
+import requests
+import base64
+
+
+K=1
+RNG_COEF=1.2
+TRUE_TTK=True
+DEBUG=True
+ALLOW_SELF_FIGHTS=True
 
 BAL="bal"
 ENG="eng"
-K=3
-RNG_COEF=.5
-TRUE_TTK=True
-DEBUG=False
+
 defaults = {
         "shield_bal_res": (0.25, 0),
         "shield_eng_res": (0.50, 0),
@@ -16,40 +22,248 @@ defaults = {
         "shield_eng_absorb": (1, 1)
     }
 
-"""
-    Calculator for estimating best case time to kill including factors like shield and hull resistances and absorbtions.
-    BE SURE TO PUT POWER SETTINGS TO A VALID SETTING WHEN ENTERING THESE VALUES
-
-    TEMPLATES:
-    Ship
-        {
-            "name": "",
-            "loadouts": {},
-            "shield_hp": 0,
-            "shield_faces": 0,
-            "vital_hull_name": "",
-            "vital_hull_hp": 0,
-            "hull_bal_res": 0,
-            "hull_eng_res": 0,
-            "pitch_rate": 0
-        }
-    Loadouts:
-    LOADOUT_NAME: {
-                    OPERATOR: {
-                        "weapons": [],
-                        "accuracy": 0,
-                        "time_on_target": 0
-                    }
-                }
-    Weapons:
-                {
-                            "type": BAL | ENG,
-                            "sustained_dps": 0,
-                            "runtime": 0,
-                            "count": 0
-                        }
-"""
 ships = [{
+            "name": "Gladius",
+            "loadouts": {
+                "Energy": {
+                    "Pilot": {
+                        "weapons": [
+                            {
+                                "type": ENG,
+                                "sustained_dps": 291,
+                                "count": 3
+                            }
+                        ],
+                        "accuracy": .7,
+                        "time_on_target": .8
+                        }
+                    }
+                },
+            "vital_hull_name": "Body",
+            "vital_hull_hp": 2134,
+            "hull_bal_res": 0.57,
+            "hull_eng_res": 0,
+            "shield_hp": 4480,
+            "shield_faces": 1,
+            "pitch_rate": 70
+        },{
+            "name": "F7A MKii",
+            "loadouts": {
+                "Revenant and Shredders": {
+                    "Pilot": {
+                        "weapons": [
+                                {
+                                    "type": BAL,
+                                    "sustained_dps": 454,
+                                    "runtime": 160,
+                                    "count": 4
+                                },
+                                {
+                                    "type": BAL,
+                                    "sustained_dps": 844,
+                                    "runtime": 150,
+                                    "count": 2
+                                }
+                            ],
+                        "accuracy": .45,
+                        "time_on_target": .65
+                        }
+                    },
+                "Panther and Rhino": {
+                    "Pilot": {
+                        "weapons": [
+                            {
+                                "type": ENG,
+                                "sustained_dps": 227.4,
+                                "count": 4
+                            },
+                            {
+                                "type": ENG,
+                                "sustained_dps": 340.8,
+                                "count": 2
+                            }
+                        ],
+                        "accuracy": .4,
+                        "time_on_target": .8
+                        }
+                    },
+                "Ardor and Attrition": {
+                    "Pilot": {
+                        "weapons": [
+                                {
+                                    "type": ENG,
+                                    "sustained_dps": 626.3,
+                                    "count": 2
+                                },
+                                {
+                                    "type": ENG,
+                                    "sustained_dps": 469.6,
+                                    "count": 4
+                                }
+                            ],
+                        "accuracy": .6,
+                        "time_on_target": .55
+                        },
+                    }
+                },
+            "vital_hull_name": "Body",
+            "vital_hull_hp": 3000,
+            "hull_bal_res": 0.55,
+            "hull_eng_res": -0.03,
+            "shield_hp": 4480,
+            "shield_faces": 1,
+            "pitch_rate": 56
+        },{
+            "name": "F7C-M MKii",
+            "loadouts": {
+                "Ardor and Attrition": {
+                    "Pilot": {
+                        "weapons": [
+                                {
+                                    "type": ENG,
+                                    "sustained_dps": 626.3,
+                                    "count": 2
+                                },
+                                {
+                                    "type": ENG,
+                                    "sustained_dps": 469.6,
+                                    "count": 2
+                                }
+                            ],
+                        "accuracy": .6,
+                        "time_on_target": .55
+                        },
+                    "Turret": {
+                        "weapons": [
+                                {
+                                    "type": ENG,
+                                    "sustained_dps": 470,
+                                    "count": 2
+                                }
+                            ],
+                        "accuracy": .7,
+                        "time_on_target": .7
+                        }
+                    },
+                "Panther and Rhino": {
+                    "Pilot": {
+                        "weapons": [
+                            {
+                                "type": ENG,
+                                "sustained_dps": 227.4,
+                                "count": 2
+                            },
+                            {
+                                "type": ENG,
+                                "sustained_dps": 340.8,
+                                "count": 2
+                            }
+                        ],
+                        "accuracy": .4,
+                        "time_on_target": .8
+                        },
+                    "Turret": {
+                        "weapons": [
+                                {
+                                    "type": ENG,
+                                    "sustained_dps": 227,
+                                    "count": 2
+                                }
+                            ],
+                        "accuracy": .4,
+                        "time_on_target": .9
+                        }
+                    },
+                "Heartseeker and Tigerstrikes": {
+                    "Pilot": {
+                        "weapons": [
+                                {
+                                    "type": BAL,
+                                    "sustained_dps": 422,
+                                    "runtime": 128,
+                                    "count": 2
+                                },
+                                {
+                                    "type": BAL,
+                                    "sustained_dps": 567,
+                                    "runtime": 170,
+                                    "count": 2
+                                }
+                            ],
+                        "accuracy": .37,
+                        "time_on_target": .45
+                        },
+                    "Turret": {
+                        "weapons": [
+                                {
+                                    "type": BAL,
+                                    "sustained_dps": 567,
+                                    "runtime": 170,
+                                    "count": 2
+                                }
+                            ],
+                        "accuracy": .3,
+                        "time_on_target": .6
+                        }
+                    }
+                },
+            "vital_hull_name": "Body",
+            "vital_hull_hp": 3150,
+            "hull_bal_res": 0.55,
+            "hull_eng_res": -.03,
+            "shield_hp": 6720,
+            "shield_faces": 1,
+            "pitch_rate": 52
+        },{
+            "name": "F8C Lightning",
+            "loadouts": {
+                "Energy": {
+                    "Pilot": {
+                        "weapons": [
+                                {
+                                    "type": ENG,
+                                    "sustained_dps": 266,
+                                    "count": 4
+                                },
+                                {
+                                    "type": ENG,
+                                    "sustained_dps": 160,
+                                    "count": 4
+                                }
+                            ],
+                        "accuracy": .4,
+                        "time_on_target": .75
+                        }
+                    },
+                "Ballistic": {
+                    "Pilot": {
+                        "weapons": [
+                                {
+                                    "type": BAL,
+                                    "sustained_dps": 454,
+                                    "runtime": 160,
+                                    "count": 4
+                                },
+                                {
+                                    "type": BAL,
+                                    "sustained_dps": 302,
+                                    "runtime": 160,
+                                    "count": 4
+                                }
+                            ],
+                        "accuracy": .45,
+                        "time_on_target": .5
+                        }
+                    }
+                },
+            "vital_hull_name": "Body",
+            "vital_hull_hp": 7650,
+            "hull_bal_res": 0.55,
+            "hull_eng_res": -.03,
+            "shield_hp": 12340,
+            "shield_faces": 1,
+            "pitch_rate": 35
+        },{
             "name": "Hurricane",
             "loadouts": {
                 "Energy": {
@@ -84,177 +298,6 @@ ships = [{
             "shield_hp": 6170,
             "shield_faces": 1,
             "pitch_rate": 38
-        },{
-            "name": "Gladiator",
-            "loadouts": {
-                "Energy": {
-                    "Pilot": {
-                        "weapons": [
-                            {
-                                "type": ENG,
-                                "sustained_dps": 735.7,
-                                "count": 2
-                            }
-                        ],
-                        "accuracy": .5,
-                        "time_on_target": .7
-                        },
-                    "Turret": {
-                        "weapons": [
-                            {
-                                "type": ENG,
-                                "sustained_dps": 551.6,
-                                "count": 2
-                            }
-                        ],
-                        "accuracy": .7,
-                        "time_on_target": .95
-                        }
-                    }
-                },
-            "vital_hull_name": "Body",
-            "vital_hull_hp": 5500,
-            "hull_bal_res": 0.54,
-            "hull_eng_res": 0,
-            "shield_hp": 6170,
-            "shield_faces": 1,
-            "pitch_rate": 40
-        },{
-            "name": "Gladius",
-            "loadouts": {
-                "Energy": {
-                    "Pilot": {
-                        "weapons": [
-                            {
-                                "type": ENG,
-                                "sustained_dps": 291,
-                                "count": 3
-                            }
-                        ],
-                        "accuracy": .7,
-                        "time_on_target": .7
-                        }
-                    }
-                },
-            "vital_hull_name": "Body",
-            "vital_hull_hp": 2134,
-            "hull_bal_res": 0.57,
-            "hull_eng_res": 0,
-            "shield_hp": 4480,
-            "shield_faces": 1,
-            "pitch_rate": 70
-        },{
-            "name": "F7A MKii",
-            "loadouts": {
-                "Energy": {
-                    "Pilot": {
-                        "weapons": [
-                            {
-                                "type": ENG,
-                                "sustained_dps": 227.4,
-                                "count": 4
-                            },
-                            {
-                                "type": ENG,
-                                "sustained_dps": 340.8,
-                                "count": 2
-                            }
-                        ],
-                        "accuracy": .4,
-                        "time_on_target": .7
-                        }
-                    }
-                },
-            "vital_hull_name": "Body",
-            "vital_hull_hp": 3000,
-            "hull_bal_res": 0.55,
-            "hull_eng_res": -0.03,
-            "shield_hp": 4480,
-            "shield_faces": 1,
-            "pitch_rate": 56
-        },{
-            "name": "F7C-M MKii",
-            "loadouts": {
-                "Energy": {
-                    "Pilot": {
-                        "weapons": [
-                                {
-                                    "type": ENG,
-                                    "sustained_dps": 626.3,
-                                    "count": 2
-                                },
-                                {
-                                    "type": ENG,
-                                    "sustained_dps": 469.6,
-                                    "count": 2
-                                }
-                            ],
-                        "accuracy": .6,
-                        "time_on_target": .7
-                        },
-                    "Turret": {
-                        "weapons": [
-                                {
-                                    "type": ENG,
-                                    "sustained_dps": 939.2,
-                                    "count": 2
-                                }
-                            ],
-                        "accuracy": .7,
-                        "time_on_target": .95
-                        }
-                    }
-                },
-            "vital_hull_name": "Body",
-            "vital_hull_hp": 3150,
-            "hull_bal_res": 0.55,
-            "hull_eng_res": -.03,
-            "shield_hp": 6740,
-            "shield_faces": 1,
-            "pitch_rate": 52
-        },{
-            "name": "F7C-M MKii Heartseeker",
-            "loadouts": {
-                "Stealth": {
-                    "Pilot": {
-                        "weapons": [
-                                {
-                                    "type": BAL,
-                                    "sustained_dps": 509.3,
-                                    "runtime": 150,
-                                    "count": 2
-                                },
-                                {
-                                    "type": BAL,
-                                    "sustained_dps": 844,
-                                    "runtime": 150,
-                                    "count": 2
-                                }
-                            ],
-                        "accuracy": .5,
-                        "time_on_target": .7
-                        },
-                    "Turret Operator": {
-                        "weapons": [
-                                {
-                                    "type": BAL,
-                                    "sustained_dps": 1132.5,
-                                    "runtime": 150,
-                                    "count": 2
-                                }
-                            ],
-                        "accuracy": .3,
-                        "time_on_target": .95
-                        }
-                    },
-                },
-            "vital_hull_name": "Body",
-            "vital_hull_hp": 3150,
-            "hull_bal_res": 0.55,
-            "hull_eng_res": -.03,
-            "shield_hp": 3840,
-            "shield_faces": 1,
-            "pitch_rate": 52
         },{
             "name": "Redeemer",
             "loadouts": {
@@ -376,7 +419,7 @@ def calculate_ttk(target, attacker, attacker_pitch_rate, include_modifiers=True)
     # calculate ship advantage rating
     adv = 1
     if estimation is True:
-        adv = max([1 + (K*(attacker_pitch_rate - target["pitch_rate"])/100), 0.1])
+        adv = 1 + (K*(attacker_pitch_rate - target["pitch_rate"])/100)
 
     # set starting values and init trackers
     hull_hp = target["vital_hull_hp"]
@@ -402,6 +445,7 @@ def calculate_ttk(target, attacker, attacker_pitch_rate, include_modifiers=True)
         "bal": 0,
         "eng": 0
         }
+    
     for key in attacker.keys():
         attacking[key] = {
                 f"{ENG}_sustained_dps": 0,
@@ -415,19 +459,21 @@ def calculate_ttk(target, attacker, attacker_pitch_rate, include_modifiers=True)
         multipliers[key] = 1
 
         if estimation is True:
-            attacking[key]["accuracy"] = max([0.1, min([ ((attacker.get(key, {}).get("accuracy", 1) - 0.5) * RNG_COEF) + 0.5, 1 ])])
+            attacking[key]["accuracy"] = max([0.1, min([ ((attacker.get(key, {}).get("accuracy", 1) - .5) * RNG_COEF) + 0.5, 1 ])])
             if key.lower() == "pilot":
                 multipliers[key] = attacker[key]["time_on_target"] * adv
-            multipliers[key] = multipliers[key]/2
-    
+        
+        w = 0
         for weapon in attacker[key]["weapons"]:
+            w += 1
             attacking[key][f"{weapon['type']}_sustained_dps"] += (weapon["sustained_dps"] * weapon["count"] * multipliers[key])
-            if DEBUG:
-                print(f'dps added: ({weapon["sustained_dps"]} * {weapon["count"]} * {multipliers[key]})')
+            if DEBUG and estimation:
+                print(f'    {key} Weapon Group {w}: Type - {weapon["type"].upper()} | Raw DPS per Weapon - {int(weapon["sustained_dps"])} | Count - x{weapon["count"]} | Modifier - x{multipliers[key]}')
+            
             if weapon['type'] == BAL:
                 for i in range(weapon['count']):
                     attacking[key][f"{weapon['type']}_runtimes"].append(weapon.get("runtime", 0))
-
+                
         if len(attacking[key][f"{BAL}_runtimes"]) > 0:
             attacking[key][f'{BAL}_runtime'] = mean(attacking[key][f"{BAL}_runtimes"])
 
@@ -560,26 +606,28 @@ def calculate_ttk(target, attacker, attacker_pitch_rate, include_modifiers=True)
                 bal_remaining[key] = int(100 - (timer / attacking[key][f"{BAL}_runtime"])*100)
     
     if estimation:
-        print(f'  Movement Advantage:\t {(int(100*adv)-100)}%')
-        print(f'    With Modifiers    ', end = "")
+        print(f'\n    With Modifiers')
+        print(f'        Total Ballistic Sustained DPS: {int(starting_dps["bal"])}')
+        print(f'        Total Energy Sustained DPS: {int(starting_dps["eng"])}')
+        print(f'        Movement Advantage: {(int(100*adv)-100)}% (Based on turn rates and accelleration compared to target)\n')
+        
     else:
-        print(f'    With No Modifiers ', end = "")         
+        print(f'\n    With No Modifiers')
+        print(f'        Total Ballistic Sustained DPS: {int(starting_dps["bal"])} dps')
+        print(f'        Total Energy Sustained DPS: {int(starting_dps["eng"])} dps')
+        print(f'        Movement Advantage: {(int(100*adv)-100)}% (Based on turn rates and accelleration compared to target)\n')
+        
     if DEBUG is True:
-        print("For Ship")
         for key in attacking.keys():
-            print(f'\t\t     For {key}')
-            print(f'\t\t\tAccuracy:        {int(100*attacking[key]["accuracy"])}%')
-            print(f'\t\t\tTime on Target:  {int(100*multipliers[key])}%')
-        print(f'\t\tdamage_tracking={json.dumps(damage_tracking, indent=2)}')
-        print(f'\t\t{starting_dps=}')
-        print(f'\t\t{target["vital_hull_hp"]=} shield_face_hp={target["shield_hp"]/target["shield_faces"]}')
-        print(f'\t\tadvantage: 1 + ({K}*({attacker_pitch_rate-target["pitch_rate"]})/100) = {adv}')
-        for key in attacking:
-            print(f'\t\t    {key}')
-            print(f'\t\t\taccuracy: [ 0.1, (({attacking.get(key, {}).get("accuracy", 1)} - 0.5) * {RNG_COEF}) + 0.5, 1 ]')
-            print(f'\t\t\ttime on target: [ 0.1, (({attacking.get(key, {}).get("time_on_target", 1)} - .5) / {adv}) + .5, 1 ]')
-
-    
+            print(f'\tMultipliers Added For {key} Weapons')
+            print(f'\t\tTime on Target:  {int(100*multipliers[key])}% (Percent of dps hitting the ship at all)')
+            print(f'\t\tAccuracy:        {int(100*attacking[key]["accuracy"])}% (Percent of dps hitting vital vs non-vital hull areas)')
+        print(f'\n\tAggregations - ')
+        print(f'\t\tTotal Damage Applied to Shields:   Ballistic - {int(damage_tracking["shield"][BAL])} | Energy - {int(damage_tracking["shield"][ENG])}')
+        print(f'\t\tTotal Damage Applied to Hull:      Ballistic: {int(damage_tracking["hull"][BAL])} | Energy - {int(damage_tracking["hull"][ENG])}')
+        print(f'\t\tHull HP Remaining: {max([0, int(hull_hp)])} of {int(target["vital_hull_hp"])} hp')
+        print(f'\t\tShield Face HP Remaining: {max([0, int(shield_hp)])} of {int(target["shield_hp"]/target["shield_faces"])} hp\n')
+            
     if timer >= 9999999:
         return "No Kill", 9999999, adv-1
     else:
@@ -597,7 +645,7 @@ if __name__ == "__main__":
         print(f'\nTARGET: {target_display}')
         
         for attacker in ships:
-            if target["name"] == attacker["name"] and len(ships) > 1:
+            if not ALLOW_SELF_FIGHTS and target["name"] == attacker["name"] and len(ships) > 1:
                 continue
             else:
                 for loadout in attacker["loadouts"].keys():
@@ -648,7 +696,7 @@ if __name__ == "__main__":
                 if b_ttk < a_ttk:
                     if a_ttk - b_ttk < a_ttk/10:
                         done.append([matchup, 
-                                    f' (Tie) {truncated_name_b}', 
+                                    f'{truncated_name_b} (Tie) ', 
                                     b_ttk, 
                                     a_ttk - b_ttk, 
                                     b_adv])
@@ -662,7 +710,7 @@ if __name__ == "__main__":
                 elif a_ttk < b_ttk:
                     if b_ttk - a_ttk < b_ttk/10:
                         done.append([matchup,
-                                    f' (Tie) {truncated_name_a}',
+                                    f'{truncated_name_a} (Tie) ',
                                     a_ttk,
                                     b_ttk - a_ttk,
                                     a_adv])
@@ -674,7 +722,7 @@ if __name__ == "__main__":
                                     a_adv])
 
                 else:
-                    done.append([matchup, "Tie", a_ttk, b_ttk - a_ttk, str((a_adv, b_adv))])
+                    done.append([matchup, "Tie", a_ttk, b_ttk - a_ttk, a_adv])
 
     col = ["Matchup", "Winner", "TTK (s)", "Diff (s)", "Winner's Advantage"]
     df = DataFrame(data=done, columns=col)
